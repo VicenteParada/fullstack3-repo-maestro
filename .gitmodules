@@ -52,3 +52,15 @@
 [submodule "nginx"]
 	path = nginx
 	url = https://github.com/VicenteParada/fullstack3-nginx.git
+[submodule "db_postgres"]
+	path = db_postgres
+	url = https://github.com/VicenteParada/fullstack3-db-postgres.git
+[submodule "front_modulo_acreditacion"]
+	path = front_modulo_acreditacion
+	url = https://github.com/VicenteParada/fullstack3-front_modulo_acreditaci-n.git
+[submodule "front_modulo_administracion"]
+	path = front_modulo_administracion
+	url = https://github.com/VicenteParada/fullstack3-front_modulo_administracion.git
+[submodule "front_modulo_bodega"]
+	path = front_modulo_bodega
+	url = https://github.com/VicenteParada/fullstack3-front_modulo_bodega.git
