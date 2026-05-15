@@ -19,9 +19,6 @@
 [submodule "front_modulo_watchdog"]
 	path = front_modulo_watchdog
 	url = https://github.com/VicenteParada/fullstack3-front_modulo_watchdog.git
-[submodule "modulo_acreditacion"]
-	path = modulo_acreditacion
-	url = https://github.com/VicenteParada/fullstack3-modulo_acreditaci-n.git
 [submodule "modulo_administracion"]
 	path = modulo_administracion
 	url = https://github.com/VicenteParada/fullstack3-modulo_administracion.git
@@ -64,3 +61,6 @@
 [submodule "front_modulo_bodega"]
 	path = front_modulo_bodega
 	url = https://github.com/VicenteParada/fullstack3-front_modulo_bodega.git
+[submodule "modulo_acreditacion"]
+	path = modulo_acreditacion
+	url = https://github.com/VicenteParada/fullstack3-modulo_acreditaci-n.git
