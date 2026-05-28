@@ -107,7 +107,7 @@ services:
 
   ms-acreditacion:
     build:
-      context: ./modulo_acreditación
+      context: ./modulo_acreditacion
       dockerfile: Dockerfile
     environment:
       - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
@@ -202,7 +202,7 @@ services:
   front-acreditacion:
     build:
       context: .
-      dockerfile: ./front_modulo_acreditación/Dockerfile
+      dockerfile: ./front_modulo_acreditacion/Dockerfile
     environment:
       - VITE_API_URL=/api/v1
     networks:
