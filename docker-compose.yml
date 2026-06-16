@@ -3,9 +3,9 @@ services:
   db-global:
     image: postgres:15
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: asdf_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -29,39 +29,37 @@ services:
     build:
       context: ./modulo_middleware
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - JWT_SECRET=super-secret-key-123
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - asdf-network
 
   # --- MICROSERVICES ---
+  ms-acreditacion:
+    build:
+      context: ./modulo_acreditacion
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=true
+    networks:
+      - asdf-network
+
   ms-administracion:
     build:
       context: ./modulo_administracion
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
-      - JWT_SECRET=super-secret-key-123
-    networks:
-      - asdf-network
-
-  ms-rrhh:
-    build:
-      context: ./modulo_rrhh
-      dockerfile: Dockerfile
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
-      - JWT_SECRET=super-secret-key-123
-    networks:
-      - asdf-network
-
-  ms-mantencion:
-    build:
-      context: ./modulo_mantencion
-      dockerfile: Dockerfile
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
-      - JWT_SECRET=super-secret-key-123
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=false
     networks:
       - asdf-network
 
@@ -69,9 +67,12 @@ services:
     build:
       context: ./modulo_bodega
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
-      - JWT_SECRET=super-secret-key-123
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=true
     networks:
       - asdf-network
 
@@ -79,9 +80,28 @@ services:
     build:
       context: ./modulo_facturacion
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
-      - JWT_SECRET=super-secret-key-123
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=true
+    networks:
+      - asdf-network
+
+  ms-mantencion:
+    build:
+      context: ./modulo_mantencion
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SITRACK_URL=${SITRACK_URL}
+      - SITRACK_USER=${SITRACK_USER}
+      - SITRACK_PASS=${SITRACK_PASS}
+      - TRUSTED_GATEWAY=true
     networks:
       - asdf-network
 
@@ -89,9 +109,12 @@ services:
     build:
       context: ./modulo_operacion
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
-      - JWT_SECRET=super-secret-key-123
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=true
     networks:
       - asdf-network
 
@@ -99,19 +122,25 @@ services:
     build:
       context: ./modulo_prevencion
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
-      - JWT_SECRET=super-secret-key-123
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=true
     networks:
       - asdf-network
 
-  ms-acreditacion:
+  ms-rrhh:
     build:
-      context: ./modulo_acreditacion
+      context: ./modulo_rrhh
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:admin123@db-global:5432/asdf_db
-      - JWT_SECRET=super-secret-key-123
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=true
     networks:
       - asdf-network
 
@@ -121,16 +150,14 @@ services:
       dockerfile: Dockerfile
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - JWT_SECRET=super-secret-key-123
     networks:
       - asdf-network
 
   # --- FRONTENDS ---
-  front-login:
+  front-acreditacion:
     build:
       context: .
-      dockerfile: ./front_modulo_login/Dockerfile
+      dockerfile: ./front_modulo_acreditacion/Dockerfile
     environment:
       - VITE_API_URL=/api/v1
     networks:
@@ -140,24 +167,6 @@ services:
     build:
       context: .
       dockerfile: ./front_modulo_administracion/Dockerfile
-    environment:
-      - VITE_API_URL=/api/v1
-    networks:
-      - asdf-network
-
-  front-rrhh:
-    build:
-      context: .
-      dockerfile: ./front_modulo_rrhh/Dockerfile
-    environment:
-      - VITE_API_URL=/api/v1
-    networks:
-      - asdf-network
-
-  front-mantencion:
-    build:
-      context: .
-      dockerfile: ./front_modulo_mantencion/Dockerfile
     environment:
       - VITE_API_URL=/api/v1
     networks:
@@ -181,6 +190,24 @@ services:
     networks:
       - asdf-network
 
+  front-login:
+    build:
+      context: .
+      dockerfile: ./front_modulo_login/Dockerfile
+    environment:
+      - VITE_API_URL=/api/v1
+    networks:
+      - asdf-network
+
+  front-mantencion:
+    build:
+      context: .
+      dockerfile: ./front_modulo_mantencion/Dockerfile
+    environment:
+      - VITE_API_URL=/api/v1
+    networks:
+      - asdf-network
+
   front-operacion:
     build:
       context: .
@@ -199,10 +226,10 @@ services:
     networks:
       - asdf-network
 
-  front-acreditacion:
+  front-rrhh:
     build:
       context: .
-      dockerfile: ./front_modulo_acreditacion/Dockerfile
+      dockerfile: ./front_modulo_rrhh/Dockerfile
     environment:
       - VITE_API_URL=/api/v1
     networks:

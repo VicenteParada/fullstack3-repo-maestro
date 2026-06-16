@@ -1,0 +1,245 @@
+global:
+  environment: aws
+  image:
+    registry: "123456789012.dkr.ecr.us-east-1.amazonaws.com" # Cambiar por tu ID de cuenta AWS
+    tag: v1.0.0
+    pullPolicy: Always
+  jwtSecret: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/jwt-secret" # Referencia a Secret Manager o texto plano según prefieras
+
+database:
+  enabled: false # En AWS usamos base de datos externa (RDS PostgreSQL Multi-AZ)
+  host: "db-rds-prod.xxxxxxxxx.us-east-1.rds.amazonaws.com"
+  port: 5432
+  user: admin
+  passwordSecretArn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/db-pass" # Usar Secret Manager
+  passwordPlaintext: "admin123" # Opcional: Contraseña en texto plano para testing rápido
+  dbName: asdf_db
+
+ingress:
+  className: "alb" # AWS Load Balancer Controller
+  host: "maestro.miuniversidad.edu"
+  # Anotaciones requeridas por el controlador ALB para balancear tráfico externo
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:123456789012:certificate/xxxx-xxxx-xxxx"
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+# Configuración de Microservicios de Backend (en AWS escalamos con más réplicas y límites adecuados)
+backends:
+  ms-middleware:
+    imageName: ms-middleware
+    port: 8009
+    replicas: 2
+    healthPath: /health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  ms-acreditacion:
+    imageName: ms-acreditacion
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/acreditacion/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources: &default_resources
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  ms-administracion:
+    imageName: ms-administracion
+    port: 8007
+    replicas: 2
+    healthPath: /api/v1/administracion/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources: *default_resources
+
+  ms-bodega:
+    imageName: ms-bodega
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/bodega/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources: *default_resources
+
+  ms-facturacion:
+    imageName: ms-facturacion
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/facturacion/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 20 # Mayor escala por alta carga
+      targetCPU: 70
+    resources: *default_resources
+
+  ms-mantencion:
+    imageName: ms-mantencion
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/vehiculos/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    sitrackUrl: "https://api.sitrack.com"
+    sitrackUser: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/sitrack" # Integración en producción
+    sitrackPass: ""
+    resources: *default_resources
+
+  ms-operacion:
+    imageName: ms-operacion
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/operacion/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources: *default_resources
+
+  ms-prevencion:
+    imageName: ms-prevencion
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/prevencion/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources: *default_resources
+
+  ms-rrhh:
+    imageName: ms-rrhh
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/personal/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources: *default_resources
+
+  ms-watchdog:
+    imageName: ms-watchdog
+    port: 8008
+    replicas: 1 # Watchdog corre en 1 réplica para no duplicar pings
+    healthPath: /health
+    hpa:
+      enabled: false
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+# Configuración de Frontends (Nginx)
+frontends:
+  front-acreditacion:
+    imageName: front-acreditacion
+    port: 80
+    replicas: 2
+    path: /acreditacion/
+    apiPath: /api/v1/acreditacion/
+
+  front-administracion:
+    imageName: front-administracion
+    port: 80
+    replicas: 2
+    path: /administracion/
+    apiPath: /api/v1/administracion/
+
+  front-bodega:
+    imageName: front-bodega
+    port: 80
+    replicas: 2
+    path: /bodega/
+    apiPath: /api/v1/bodega/
+
+  front-facturacion:
+    imageName: front-facturacion
+    port: 80
+    replicas: 2
+    path: /facturacion/
+    apiPath: /api/v1/facturacion/
+
+  front-login:
+    imageName: front-login
+    port: 80
+    replicas: 2
+    path: /login/
+    apiPath: /api/v1/administracion/login
+
+  front-mantencion:
+    imageName: front-mantencion
+    port: 80
+    replicas: 2
+    path: /mantencion/
+    apiPaths:
+      - /api/v1/mantenciones/
+      - /api/v1/ordenes-trabajo/
+      - /api/v1/preventive/
+      - /api/v1/reportes/
+      - /api/v1/templates-mantencion/
+      - /api/v1/vehiculos/
+
+  front-operacion:
+    imageName: front-operacion
+    port: 80
+    replicas: 2
+    path: /operacion/
+    apiPath: /api/v1/operacion/
+
+  front-prevencion:
+    imageName: front-prevencion
+    port: 80
+    replicas: 2
+    path: /prevencion/
+    apiPath: /api/v1/prevencion/
+
+  front-rrhh:
+    imageName: front-rrhh
+    port: 80
+    replicas: 2
+    path: /rrhh/
+    apiPath: /api/v1/personal/
+
+  front-watchdog:
+    imageName: front-watchdog
+    port: 80
+    replicas: 2
+    path: /watchdog/
+    apiPath: /api/v1/watchdog/
