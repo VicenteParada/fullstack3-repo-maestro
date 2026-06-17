@@ -9,13 +9,14 @@ show_menu() {
     echo "          SELECTOR DE DESPLIEGUE - MAESTRO KUBERNETES"
     echo "====================================================================="
     echo "  1) Desplegar en AWS (EKS - Universidad / Produccion)"
-    echo "  2) Desplegar en Local (K3s/Minikube - Trabajo / Desarrollo)"
-    echo "  3) Eliminar despliegue AWS"
-    echo "  4) Eliminar despliegue Local"
-    echo "  5) Salir"
+    echo "  2) Desplegar en Local (Docker Desktop / Minikube)"
+    echo "  3) Desplegar en K3s Nativo (Traefik + Containerd)"
+    echo "  4) Eliminar despliegue AWS"
+    echo "  5) Eliminar despliegue Local/K3s"
+    echo "  6) Salir"
     echo "====================================================================="
     echo ""
-    read -p "Selecciona una opcion [1-5]: " opcion
+    read -p "Selecciona una opcion [1-6]: " opcion
 }
 
 deploy_aws() {
@@ -55,6 +56,31 @@ deploy_local() {
     read -p "Presiona Enter para continuar..."
 }
 
+deploy_k3s() {
+    echo ""
+    echo "====================================================================="
+    echo "  [PROCESO] Iniciando despliegue en K3s Nativo"
+    echo "====================================================================="
+    echo ""
+    echo "[*] Ejecutando script de importación de imágenes en containerd..."
+    if [ -f "./load_images_k3s.sh" ]; then
+        bash ./load_images_k3s.sh
+    else
+        echo "\e[31m[ERROR] No se encuentra load_images_k3s.sh\e[0m"
+        read -p "Presiona Enter para continuar..."
+        return
+    fi
+    
+    echo ""
+    helm upgrade --install modular-app ./kubernetes/helm/modular-app -f ./kubernetes/helm/modular-app/values-k3s.yaml
+    if [ $? -eq 0 ]; then
+        echo -e "\n\e[32m[OK] Despliegue en K3s completado exitosamente.\e[0m"
+    else
+        echo -e "\n\e[31m[ERROR] El despliegue de Helm en K3s ha fallado.\e[0m"
+    fi
+    read -p "Presiona Enter para continuar..."
+}
+
 delete_aws() {
     echo ""
     echo "====================================================================="
@@ -78,9 +104,10 @@ while true; do
     case $opcion in
         1) deploy_aws ;;
         2) deploy_local ;;
-        3) delete_aws ;;
-        4) delete_local ;;
-        5) echo -e "\nSaliendo del selector. Buen dia!"; exit 0 ;;
+        3) deploy_k3s ;;
+        4) delete_aws ;;
+        5) delete_local ;;
+        6) echo -e "\nSaliendo del selector. Buen dia!"; exit 0 ;;
         *) echo -e "\n\e[31m[ERROR] Opcion invalida.\e[0m"; sleep 1.5 ;;
     esac
 done

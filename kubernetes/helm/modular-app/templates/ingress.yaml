@@ -3,11 +3,11 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}-ingress
   annotations:
-    kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
     {{- if eq .Values.global.environment "aws" }}
     {{- toYaml .Values.ingress.annotations | nindent 4 }}
     {{- end }}
 spec:
+  ingressClassName: {{ .Values.ingress.className | quote }}
   rules:
   - host: {{ .Values.ingress.host | quote }}
     http:
