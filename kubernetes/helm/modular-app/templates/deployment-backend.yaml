@@ -15,6 +15,9 @@ spec:
       labels:
         app: {{ $name }}
     spec:
+      {{- if eq $name "ms-watchdog" }}
+      serviceAccountName: watchdog-sa
+      {{- end }}
       containers:
       - name: {{ $name }}
         image: "{{ $.Values.global.image.registry | default "" }}{{ if $.Values.global.image.registry }}/{{ end }}{{ $config.imageName }}:{{ $.Values.global.image.tag }}"
