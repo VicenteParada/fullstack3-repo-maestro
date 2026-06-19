@@ -86,7 +86,7 @@ run_stress_tests_headless() {
     cat "$TEMP_LOG"
     
     if [ $EXIT_CODE -eq 0 ]; then
-        LAST_AGGREGATED=$(grep "Aggregated" "$TEMP_LOG" | tail -n 1)
+        LAST_AGGREGATED=$(grep "Aggregated" "$TEMP_LOG" | grep "%" | tail -n 1)
         REQ_COUNT=$(echo "$LAST_AGGREGATED" | awk '{print $2}')
         FAIL_COUNT=$(echo "$LAST_AGGREGATED" | awk '{print $3}')
         FAIL_NUM=$(echo "$FAIL_COUNT" | cut -d'(' -f1)
