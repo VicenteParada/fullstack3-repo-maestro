@@ -1,6 +1,8 @@
 #!/bin/bash
 # =====================================================================
 # Script para construir y ejecutar las pruebas usando Docker
+# Una sola imagen (hub-empresarial-tests) sirve para todos los tipos
+# de prueba, incluyendo E2E con Playwright/Chromium headless.
 # =====================================================================
 
 IMAGE_NAME="hub-empresarial-tests"
@@ -18,28 +20,26 @@ build_image() {
 
 ensure_compose_up() {
     echo "[*] Verificando si el entorno de Docker Compose está activo..."
-    # Verificar si el gateway responde en el puerto 8080 con código 200
     HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health || echo "000")
-    
+
     if [ "$HEALTH_CODE" = "200" ]; then
         echo "[+] El entorno ya está activo y saludable. Continuando..."
     else
-        echo "[*] El entorno está apagado o no responde. Levantando Docker Compose automáticamente..."
+        echo "[*] El entorno está apagado. Levantando Docker Compose automáticamente..."
         WAS_COMPOSE_DOWN=true
         docker compose up -d
         if [ $? -ne 0 ]; then
             echo "[-] Error iniciando Docker Compose."
             exit 1
         fi
-        
-        # Bucle de espera de salud (Health Check Loop)
+
+        # Bucle de espera de salud (hasta 2 minutos)
         echo "[*] Esperando a que los servicios estén listos (Health Check)..."
-        RETRIES=30
+        RETRIES=60
         until [ $RETRIES -le 0 ]; do
             HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health || echo "000")
             if [ "$HEALTH_CODE" = "200" ]; then
                 echo "[+] Entorno levantado y saludable. Continuando..."
-                # Dar un pequeño margen extra para el inicio completo de la base de datos
                 sleep 2
                 return 0
             fi
@@ -47,7 +47,7 @@ ensure_compose_up() {
             sleep 2
             RETRIES=$((RETRIES-1))
         done
-        
+
         echo "[-] Tiempo de espera agotado. Los servicios no se iniciaron correctamente."
         exit 1
     fi
@@ -68,47 +68,48 @@ run_unit_tests() {
 run_integration_tests() {
     ensure_compose_up
     echo "[*] Ejecutando PRUEBAS DE INTEGRACIÓN..."
-    # Se utiliza --network host para poder acceder a http://localhost:8080 expuesto en la máquina local
     docker run --rm --network host $IMAGE_NAME pytest tests/integration/
-    TEST_RESULT=$?
-    cleanup_compose
-    return $TEST_RESULT
+    return $?
 }
 
 run_stress_tests() {
     ensure_compose_up
-    echo "[*] Iniciando servidor de PRUEBAS DE ESTRÉS (Locust)..."
-    echo "[!] Para acceder a la interfaz web, abre tu navegador en: http://localhost:8089"
-    echo "[!] Presiona Ctrl+C en esta terminal para detener la prueba."
-    # En red host, el puerto 8089 queda expuesto directamente en el anfitrión
-    docker run -it --rm --network host $IMAGE_NAME locust -f tests/stress/locustfile.py
+    if [ "$1" = "--headless" ]; then
+        echo "[*] Ejecutando PRUEBAS DE ESTRÉS en modo HEADLESS (sin interfaz gráfica)..."
+        echo "[*] Duración: 10 segundos | Usuarios simulados: 10 | Tasa de spawn: 2/seg"
+        docker run --rm --network host $IMAGE_NAME locust -f tests/stress/locustfile.py --headless -u 10 -r 2 --run-time 10s --host http://localhost:8080
+    else
+        echo "[*] Iniciando servidor de PRUEBAS DE ESTRÉS (Locust)..."
+        echo "[!] Para acceder a la interfaz web, abre tu navegador en: http://localhost:8089"
+        echo "[!] Presiona Ctrl+C en esta terminal para detener la prueba."
+        docker run -it --rm --network host $IMAGE_NAME locust -f tests/stress/locustfile.py
+    fi
     cleanup_compose
 }
 
+
 run_e2e_tests() {
     ensure_compose_up
-    echo "[*] Ejecutando PRUEBAS E2E (Playwright)..."
-    echo "[!] Utilizando contenedor oficial de Microsoft Playwright..."
-    # Se utiliza la imagen oficial de Playwright de Microsoft para no tener que instalar navegadores locales
-    docker run --rm --network host -v "$(pwd)":/app -w /app mcr.microsoft.com/playwright/python:v1.40.0-jammy bash -c "pip install -r requirements.txt && pytest tests/e2e/"
-    TEST_RESULT=$?
-    cleanup_compose
-    return $TEST_RESULT
+    echo "[*] Ejecutando PRUEBAS E2E (Playwright/Chromium headless)..."
+    # --shm-size=256m: Chromium necesita mas de los 64MB por defecto de /dev/shm para renderizar sin crashear
+    docker run --rm --network host --shm-size=256m $IMAGE_NAME pytest tests/e2e/
+    return $?
 }
 
 show_help() {
     echo "Uso: $0 [opcion]"
     echo "Opciones:"
-    echo "  unit         Ejecuta únicamente las pruebas unitarias (no requiere Docker Compose levantado)."
-    echo "  integration  Ejecuta únicamente las pruebas de integración (gestión automática de Docker Compose)."
-    echo "  stress       Inicia el servidor interactivo de Locust para pruebas de carga en: http://localhost:8089"
-    echo "  e2e          Ejecuta las pruebas E2E con Playwright (gestión automática de Docker Compose)."
+    echo "  unit         Ejecuta únicamente las pruebas unitarias (no requiere Docker Compose)."
+    echo "  integration  Ejecuta únicamente las pruebas de integración."
+    echo "  stress       Inicia el servidor interactivo de Locust en: http://localhost:8089"
+    echo "               Opcional: './run_tests.sh stress --headless' para test rápido de 10s."
+
+    echo "  e2e          Ejecuta las pruebas E2E con Playwright/Chromium headless."
     echo "  all          Construye la imagen y ejecuta todas las pruebas consecutivamente."
-    echo "  build        Solo construye la imagen de pruebas local."
+    echo "  build        Solo construye la imagen de pruebas."
     echo "  help         Muestra este mensaje."
 }
 
-# Verificar parámetros
 OPCION=$1
 
 if [ -z "$OPCION" ]; then
@@ -124,19 +125,29 @@ case "$OPCION" in
     integration)
         build_image
         run_integration_tests
+        cleanup_compose
         ;;
     stress)
         build_image
-        run_stress_tests
+        run_stress_tests "$2"
         ;;
+
     e2e)
+        build_image
         run_e2e_tests
+        cleanup_compose
         ;;
     all)
         build_image
         run_unit_tests
-        run_integration_tests
-        run_e2e_tests
+        ensure_compose_up
+        echo "[*] Ejecutando PRUEBAS DE INTEGRACIÓN..."
+        docker run --rm --network host $IMAGE_NAME pytest tests/integration/
+        echo "[*] Ejecutando PRUEBAS E2E (Playwright/Chromium headless)..."
+        docker run --rm --network host --shm-size=256m $IMAGE_NAME pytest tests/e2e/
+        echo "[*] Ejecutando PRUEBAS DE ESTRÉS en modo HEADLESS (ligero)..."
+        docker run --rm --network host $IMAGE_NAME locust -f tests/stress/locustfile.py --headless -u 10 -r 1 --run-time 10s --host http://localhost:8080
+        cleanup_compose
         ;;
     build)
         build_image
