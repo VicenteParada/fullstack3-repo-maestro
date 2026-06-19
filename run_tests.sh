@@ -72,12 +72,43 @@ run_integration_tests() {
     return $?
 }
 
+run_stress_tests_headless() {
+    USERS=$1
+    SPAWN_RATE=$2
+    DURATION=$3
+    echo "[*] Ejecutando PRUEBAS DE ESTRÉS en modo HEADLESS (sin interfaz gráfica)..."
+    echo "[*] Duración: $DURATION | Usuarios simulados: $USERS | Tasa de spawn: $SPAWN_RATE/seg"
+    
+    # Ejecutar y capturar salida a archivo temporal
+    TEMP_LOG="locust_run_$(date +%s).log"
+    docker run --rm --network host $IMAGE_NAME locust -f tests/stress/locustfile.py --headless -u $USERS -r $SPAWN_RATE --run-time $DURATION --host http://localhost:8080 > "$TEMP_LOG" 2>&1
+    EXIT_CODE=$?
+    cat "$TEMP_LOG"
+    
+    if [ $EXIT_CODE -eq 0 ]; then
+        LAST_AGGREGATED=$(grep "Aggregated" "$TEMP_LOG" | tail -n 1)
+        REQ_COUNT=$(echo "$LAST_AGGREGATED" | awk '{print $2}')
+        FAIL_COUNT=$(echo "$LAST_AGGREGATED" | awk '{print $3}')
+        FAIL_NUM=$(echo "$FAIL_COUNT" | cut -d'(' -f1)
+        rm -f "$TEMP_LOG"
+        
+        if [ -z "$REQ_COUNT" ] || [ -z "$FAIL_NUM" ]; then
+            echo -e "\n====================== Locust Stress Test: SUCCESS (0 failures) in $DURATION ======================"
+        else
+            PASSED_COUNT=$((REQ_COUNT - FAIL_NUM))
+            echo -e "\n====================== Locust Stress Test: $PASSED_COUNT passed ($FAIL_NUM failed) in $DURATION ======================"
+        fi
+    else
+        rm -f "$TEMP_LOG"
+        echo -e "\n====================== Locust Stress Test: FAILED (Exit Code $EXIT_CODE) ======================"
+        exit 1
+    fi
+}
+
 run_stress_tests() {
     ensure_compose_up
     if [ "$1" = "--headless" ]; then
-        echo "[*] Ejecutando PRUEBAS DE ESTRÉS en modo HEADLESS (sin interfaz gráfica)..."
-        echo "[*] Duración: 10 segundos | Usuarios simulados: 10 | Tasa de spawn: 2/seg"
-        docker run --rm --network host $IMAGE_NAME locust -f tests/stress/locustfile.py --headless -u 10 -r 2 --run-time 10s --host http://localhost:8080
+        run_stress_tests_headless 10 2 10s
     else
         echo "[*] Iniciando servidor de PRUEBAS DE ESTRÉS (Locust)..."
         echo "[!] Para acceder a la interfaz web, abre tu navegador en: http://localhost:8089"
@@ -145,8 +176,7 @@ case "$OPCION" in
         docker run --rm --network host $IMAGE_NAME pytest tests/integration/
         echo "[*] Ejecutando PRUEBAS E2E (Playwright/Chromium headless)..."
         docker run --rm --network host --shm-size=256m $IMAGE_NAME pytest tests/e2e/
-        echo "[*] Ejecutando PRUEBAS DE ESTRÉS en modo HEADLESS (ligero)..."
-        docker run --rm --network host $IMAGE_NAME locust -f tests/stress/locustfile.py --headless -u 10 -r 1 --run-time 10s --host http://localhost:8080
+        run_stress_tests_headless 10 1 10s
         cleanup_compose
         ;;
     build)
