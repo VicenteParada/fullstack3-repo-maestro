@@ -1,4 +1,5 @@
 import React from 'react';
+import NotificationBell from './NotificationBell';
 
 /**
  * Props:
@@ -11,7 +12,10 @@ const Header = ({ title, gradient, children }) => {
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm relative">
       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient}`}></div>
       <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
-      {children && <div className="flex items-center gap-4">{children}</div>}
+      <div className="flex items-center gap-4">
+        <NotificationBell />
+        {children}
+      </div>
     </header>
   );
 };

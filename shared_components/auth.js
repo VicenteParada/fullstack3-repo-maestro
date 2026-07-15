@@ -23,6 +23,8 @@ export const MODULE_PRIORITY = [
   { id: 'prevencion', path: '/prevencion/' },
   { id: 'acreditacion', path: '/acreditacion/' },
   { id: 'watchdog', path: '/watchdog/' },
+  { id: 'solicitudes', path: '/solicitudes/' },
+  { id: 'rendiciones', path: '/rendiciones/' },
   { id: 'administracion', path: '/' },
 ];
 

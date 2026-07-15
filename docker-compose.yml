@@ -153,6 +153,32 @@ services:
     networks:
       - asdf-network
 
+  ms-solicitudes:
+    build:
+      context: ./modulo_solicitudes
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=true
+    networks:
+      - asdf-network
+
+  ms-rendiciones:
+    build:
+      context: ./modulo_rendiciones
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - TRUSTED_GATEWAY=true
+    networks:
+      - asdf-network
+
   # --- FRONTENDS ---
   front-acreditacion:
     build:
@@ -239,6 +265,24 @@ services:
     build:
       context: .
       dockerfile: ./front_modulo_watchdog/Dockerfile
+    environment:
+      - VITE_API_URL=/api/v1
+    networks:
+      - asdf-network
+
+  front-solicitudes:
+    build:
+      context: .
+      dockerfile: ./front_modulo_solicitudes/Dockerfile
+    environment:
+      - VITE_API_URL=/api/v1
+    networks:
+      - asdf-network
+
+  front-rendiciones:
+    build:
+      context: .
+      dockerfile: ./front_modulo_rendiciones/Dockerfile
     environment:
       - VITE_API_URL=/api/v1
     networks:

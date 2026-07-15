@@ -1,17 +1,23 @@
-quart
-quart-cors
-SQLAlchemy>=2.0
-asyncpg
+# Dependencias de aplicación (versiones pineadas para evitar backtracking de pip)
+quart==0.20.0
+quart-cors==0.8.0
+SQLAlchemy==2.0.51
+asyncpg==0.31.0
 pydantic==2.6.4
 PyJWT==2.8.0
 passlib==1.7.4
 bcrypt==4.1.2
-uvicorn
+uvicorn==0.49.0
 hypercorn==0.16.0
-httpx
+httpx==0.28.1
 requests==2.31.0
-python-dotenv
-fastapi
-pytest
-pytest-asyncio
-pytest-mock
+python-dotenv==1.2.2
+fastapi==0.125.0
+starlette==0.50.0
+
+# Dependencias de testing
+pytest==9.1.0
+pytest-asyncio==1.4.0
+pytest-mock==3.15.1
+playwright==1.60.0
+locust==2.29.1

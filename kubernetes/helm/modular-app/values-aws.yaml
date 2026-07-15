@@ -151,6 +151,30 @@ backends:
       targetCPU: 80
     resources: *default_resources
 
+  ms-solicitudes:
+    imageName: ms-solicitudes
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/solicitudes/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources: *default_resources
+
+  ms-rendiciones:
+    imageName: ms-rendiciones
+    port: 8000
+    replicas: 2
+    healthPath: /api/v1/rendiciones/health
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 80
+    resources: *default_resources
+
   ms-watchdog:
     imageName: ms-watchdog
     port: 8008
@@ -235,7 +259,25 @@ frontends:
     port: 80
     replicas: 2
     path: /rrhh/
-    apiPath: /api/v1/personal/
+    # RRHH expone personal, asistencia e historial de cambios
+    apiPaths:
+      - /api/v1/personal/
+      - /api/v1/asistencia/
+      - /api/v1/historial/
+
+  front-solicitudes:
+    imageName: front-solicitudes
+    port: 80
+    replicas: 2
+    path: /solicitudes/
+    apiPath: /api/v1/solicitudes/
+
+  front-rendiciones:
+    imageName: front-rendiciones
+    port: 80
+    replicas: 2
+    path: /rendiciones/
+    apiPath: /api/v1/rendiciones/
 
   front-watchdog:
     imageName: front-watchdog
