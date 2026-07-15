@@ -9,6 +9,8 @@ const ALL_MODULES = [
   { id: 'operacion', name: 'Operación', path: '/operacion/' },
   { id: 'bodega', name: 'Bodega', path: '/bodega/' },
   { id: 'facturacion', name: 'Facturación', path: '/facturacion/' },
+  { id: 'solicitudes', name: 'Solicitudes', path: '/solicitudes/' },
+  { id: 'rendiciones', name: 'Rendiciones', path: '/rendiciones/' },
   { id: 'administracion', name: 'Administración', path: '/' },
   { id: 'watchdog', name: 'Watchdog', path: '/watchdog/' },
 ];
